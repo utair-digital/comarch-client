@@ -12,7 +12,7 @@ Install
 -------
 .. code-block:: sh
 
-    $ pip install
+    $ pip install git+https://github.com/utair-digital/comarch-client
 
 
 Basic Example
