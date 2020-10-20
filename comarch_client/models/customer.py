@@ -24,20 +24,16 @@ class Customer:
     # loyalty card number belonging to this customer (may be None for enroll - Comarch will assign it)
     card_number: Optional[str] = None
 
-
-class CustomerSerializer:
-
-    @staticmethod
-    def to_comarch(customer: Customer):
+    def to_comarch(self):
         result = dict(
-            login=customer.login,
-            firstName=customer.first_name,
-            lastName=customer.last_name,
-            dateOfBirth=customer.birthdate.strftime("%d%m%Y"),
-            address=[item.to_comarch() for item in customer.addresses],
-            commPrefs=customer.communication_preferences.to_comarch(),
-            extAttributes=[item.to_comarch() for item in customer.extended_attributes],
+            login=self.login,
+            firstName=self.first_name,
+            lastName=self.last_name,
+            dateOfBirth=self.birthdate.strftime("%d%m%Y"),
+            address=[item.to_comarch() for item in self.addresses],
+            commPrefs=self.communication_preferences.to_comarch(),
+            extAttributes=[item.to_comarch() for item in self.extended_attributes],
         )
-        if customer.card_number:
-            result['cardNumber'] = customer.card_number
+        if self.card_number:
+            result['cardNumber'] = self.card_number
         return result
