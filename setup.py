@@ -3,8 +3,8 @@ from setuptools import setup, find_packages
 
 
 requires = [
-    "xmltodict==0.12.0",
-    "aiohttp==3.6.2",
+    "xmltodict~=0.12.0",
+    "aiohttp~=3.6.2",
 ]
 
 
