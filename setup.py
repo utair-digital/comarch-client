@@ -3,14 +3,14 @@ from setuptools import setup, find_packages
 
 
 requires = [
-    "xmltodict==0.12.0",
-    "aiohttp==3.6.2",
+    "xmltodict~=0.12.0",
+    "aiohttp~=3.6.2",
 ]
 
 
 setup(
     name="comarch_client",
-    version="0.1.0",
+    version="0.2.0",
     description="comarch soap client",
     long_description=open("README.rst").read(),
     author="Utair",
