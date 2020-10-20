@@ -9,16 +9,12 @@ import logging
 import time
 import uuid
 import xml.dom.minidom
-from datetime import datetime
-from typing import List
 
 import xmltodict
 from aiohttp import ClientSession, ClientTimeout, ClientConnectionError, ClientError
 
 from . import exceptions
-from .models.address import Address
-from .models.communication_preferences import CommunicationPreferences
-from .models.extended_attributes import ExtendedAttribute
+from .models.customer import Customer, CustomerSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -213,42 +209,16 @@ class ComarchSOAPAsyncClient:
             "mergeAccount", dict(sourceCardNo=source_card_number, destinationCardNo=destination_card_number)
         )
 
-    async def enroll(
-        self,
-        login: str,
-        first_name: str,
-        last_name: str,
-        birthday: datetime,
-        addresses: List[Address],
-        card_number: str,
-        communication_preferences: CommunicationPreferences,
-        extended_attributes: List[ExtendedAttribute],
-    ):
+    async def enroll(self, customer: Customer, is_complete: bool = False):
         """
-        Method used for enrolling new program member.
+        Method for enrolling a new program member.
 
-        :param login: customer login
-        :param first_name: member's first name
-        :param last_name: member's last name
-        :param birthday: date of birth
-        :param addresses: member's addresses.
-        :param card_number: loyalty card number belonging to this customer
-        :param communication_preferences: customer communication preferences
-        :param extended_attributes: list of customer’s extended attributes
+        :param customer: new customer data
+        :param is_complete: "False" indicates that it is "quick enrollment" (see Comarch docs)
 
         :return:
         """
         request = dict(
-            customer=dict(
-                login=login,
-                firstName=first_name,
-                lastName=last_name,
-                dateOfBirth=birthday.strftime("%d%m%Y"),
-                address=[item.to_comarch() for item in addresses],
-                cardNumber=card_number,
-                commPrefs=communication_preferences.to_comarch(),
-                extAttributes=[item.to_comarch() for item in extended_attributes],
-            ),
-            incompleteData="Y",
-        )
+            customer=CustomerSerializer.to_comarch(customer),
+            incompleteData="N" if is_complete else "Y")
         return await self._make_request("enroll", request)
