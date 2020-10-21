@@ -14,7 +14,7 @@ import xmltodict
 from aiohttp import ClientSession, ClientTimeout, ClientConnectionError, ClientError
 
 from . import exceptions
-from .models.customer import Customer, CustomerSerializer
+from .models.customer import Customer
 
 logger = logging.getLogger(__name__)
 
