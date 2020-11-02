@@ -9,6 +9,8 @@ import logging
 import time
 import uuid
 import xml.dom.minidom
+from datetime import datetime
+from typing import List, Optional, Union
 
 import xmltodict
 from aiohttp import ClientSession, ClientTimeout, ClientConnectionError, ClientError
@@ -60,8 +62,11 @@ class ComarchSOAPAsyncClient:
         start_ts = time.time()
         request_id = str(uuid.uuid4())
 
+        _class_replace_map = {
+            'nonAirlineAccrual': 'nonAirAccrual',
+        }
         query = {
-            method: {
+            _class_replace_map.get(method, method): {
                 "context": {"langCode": "en-us", "clientLogin": self.username, "clientPass": self.password},
                 "data": query_params,
             }
@@ -209,7 +214,122 @@ class ComarchSOAPAsyncClient:
             "mergeAccount", dict(sourceCardNo=source_card_number, destinationCardNo=destination_card_number)
         )
 
-    async def enroll(self, customer: Customer, is_complete: bool = False):
+    async def reverse_non_airline_accrual(
+            self,
+            card_number: str,
+
+            partner_code: str,
+            transaction_type: str,
+            transaction_id: Optional[int] = None,
+            partner_transaction_id: Optional[str] = None,
+
+            value: Optional[int] = None,
+            description: Optional[str] = None,
+            # TODO: products: Optional[List[ProductData]] = None,
+    ) -> dict:
+        """
+        Deduct previously accrued points based on provided products list and value fields.
+
+        Transaction to reverse must be identified either by CLM ID or partner transaction ID.
+        It is possible to make either full reversal (value field is empty) or partial (value field is not empty).
+        It is (NOT YET!) possible to pass list of products that was reverted.
+        They will be stored under this reversal transaction for informational purposes.
+
+        :param card_number:            Loyalty Card number.
+        :param partner_code:           Must be set to the same value as in original transaction.
+        :param transaction_type:       Possible values will be provided in partnership configuration document.
+        :param transaction_id:         Id of transaction which should be reverted.
+        :param partner_transaction_id: Partner’s Id of transaction which should be reverted.
+        :param value:                  Number of points to be deducted. If not provided, system will make full reversal.
+        :param description:            Optional transaction description.
+        """
+        if not transaction_id and not partner_transaction_id:
+            raise ValueError("Either transaction_id or partner_transaction_id is required.")
+
+        args = {
+            "cardNo": card_number,
+            "partnerCode": partner_code,
+            "trnType": transaction_type,
+        }
+        optionals = {
+            "trnId": transaction_id,
+            "prtTrnId": partner_transaction_id,
+            "value": value,
+            "desc": description,
+        }
+        args.update((k, v) for k, v in optionals.items() if v is not None)
+
+        # response contains "revtrnId" on success
+        return await self._make_request("reverseNonAirlineAccrual", args)
+
+    async def non_airline_accrual(
+            self,
+            transaction_type: str,
+
+            card_number: str,
+            first_name: str,
+            last_name: str,
+
+            transaction_code: Optional[str],
+            partner_code: str,
+            partner_transaction_datetime: datetime,
+            partner_transaction_id: str,
+            value: int,
+            description: Optional[str] = None,
+
+            location_code: Optional[str] = None,
+            benefit_codes: Union[str, List[str], None] = None,
+            # TODO revenue: Optional[float],  # Double(10.2)
+            # TODO products: Optional[List[ProductData]] = None,
+            # TODO dynamic_attributes: Optional[Dict[str, str]] = None,
+    ) -> dict:
+        """
+        Non-airline products point accrual.
+
+        :param transaction_type:       Possible values will be provided in partnership configuration document.
+        :param card_number:            Loyalty Card number.
+        :param first_name:             Member's first name (used in validation process)
+        :param last_name:              Member's last name (used in validation process)
+
+        :param transaction_code:       Transaction code.
+        :param partner_code:           Partner code.
+        :param partner_transaction_datetime: Date and time of the partner’s transaction.
+        :param location_code:          Partner's location code.
+        :param value:                  Number of points to accrue (only positive values).
+        :param description:            Optional transaction description.
+
+        :param partner_transaction_id: Unique transaction identifier. Duplication check is made upon these value.
+        :param benefit_codes:          List of coupon codes.
+        """
+        args = {
+            "trnType": transaction_type,
+            "cardNo": card_number,
+            "value": value,
+
+            "firstName": first_name.upper(),
+            "lastName": last_name.upper(),
+
+            "partnerCode": partner_code,
+            "prtTrnDate": partner_transaction_datetime.strftime("%Y%m%d"),
+            "prtTrnTime": partner_transaction_datetime.strftime("%H%M"),
+
+            "prtTrnId": partner_transaction_id,
+        }
+        optionals = {
+            "trnCode": transaction_code,
+            "prtTrnTimeZone": None,  # FIXME: tz name from partner_transaction_datetime if exists?
+            "locCode": location_code,
+            "revenue": None,  # FIXME
+            "desc": description,
+            "benCodes": ",".join([benefit_codes] if isinstance(benefit_codes, str) else benefit_codes or []) or None,
+            "product": None,  # FIXME
+            "dynAttr": None,  # FIXME
+        }
+        args.update((k, v) for k, v in optionals.items() if v is not None)
+
+        return await self._make_request("nonAirlineAccrual", args)
+
+    async def enroll(self, customer: Customer, is_complete: bool = False) -> dict:
         """
         Method for enrolling a new program member.
 
