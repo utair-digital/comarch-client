@@ -338,7 +338,7 @@ class ComarchSOAPAsyncClient:
 
         :return:
         """
-        request = dict(
+        args = dict(
             customer=customer.to_comarch(),
             incompleteData="N" if is_complete else "Y")
-        return await self._make_request("enroll", request)
+        return await self._make_request("enroll", args)
