@@ -245,6 +245,8 @@ class ComarchSOAPAsyncClient:
         """
         if not transaction_id and not partner_transaction_id:
             raise ValueError("Either transaction_id or partner_transaction_id is required.")
+        if not (value is None or value > 0):
+            raise ValueError("Expected positive value or None")
 
         args = {
             "cardNo": card_number,
@@ -301,6 +303,8 @@ class ComarchSOAPAsyncClient:
         :param partner_transaction_id: Unique transaction identifier. Duplication check is made upon these value.
         :param benefit_codes:          List of coupon codes.
         """
+        if value <= 0:
+            raise ValueError("Expected positive value")
         args = {
             "trnType": transaction_type,
             "cardNo": card_number,
