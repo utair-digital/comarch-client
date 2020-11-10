@@ -43,4 +43,4 @@ class ComarchConnectionError(ComarchError):
 
     http_code = 503
     error_code = 50301
-    message = "Bonus program in unavailable"
+    message = "Bonus program is unavailable"
