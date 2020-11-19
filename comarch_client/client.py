@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import List, Optional, Union
 
 import xmltodict
-from aiohttp import ClientSession, ClientTimeout, ClientConnectionError, ClientError
+from aiohttp import ClientSession, ClientError
 
 from . import exceptions
 from .models.customer import Customer
@@ -85,7 +85,7 @@ class ComarchSOAPAsyncClient:
             res = await self.session.post(
                 self.uri, data=request_data.encode("utf-8"), headers=self.headers, timeout=self.timeout,
             )
-        except (ClientTimeout, ClientConnectionError, ClientError) as e:
+        except ClientError as e:
             self._log("warning", request_id, method, start_ts, time.time(), request_data, error=e)
             raise exceptions.ComarchConnectionError(internal_message=e)
 
