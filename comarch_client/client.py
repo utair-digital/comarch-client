@@ -158,12 +158,21 @@ class ComarchSOAPAsyncClient:
         getattr(logger, level, "debug")(message, extra=extra)
 
     async def __aenter__(self) -> "ComarchSOAPAsyncClient":
-        self.session = ClientSession()
+        # Track depth to make sure this context manager is reentrant.
+        try:
+            self._cm_depth
+        except AttributeError:
+            self._cm_depth = 0
 
+        if self._cm_depth == 0:
+            self.session = ClientSession()
+        self._cm_depth += 1
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        await self.session.close()
+        self._cm_depth -= 1
+        if self._cm_depth <= 0:
+            await self.session.close()
 
     @staticmethod
     def _prettify_xml(xml_text):
