@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import List, Optional, Union
 
 import xmltodict
-from aiohttp import ClientSession, ClientTimeout, ClientConnectionError, ClientError
+from aiohttp import ClientSession, ClientError
 
 from . import exceptions
 from .models.customer import Customer
@@ -85,7 +85,7 @@ class ComarchSOAPAsyncClient:
             res = await self.session.post(
                 self.uri, data=request_data.encode("utf-8"), headers=self.headers, timeout=self.timeout,
             )
-        except (ClientTimeout, ClientConnectionError, ClientError) as e:
+        except ClientError as e:
             self._log("warning", request_id, method, start_ts, time.time(), request_data, error=e)
             raise exceptions.ComarchConnectionError(internal_message=e)
 
@@ -158,12 +158,21 @@ class ComarchSOAPAsyncClient:
         getattr(logger, level, "debug")(message, extra=extra)
 
     async def __aenter__(self) -> "ComarchSOAPAsyncClient":
-        self.session = ClientSession()
+        # Track depth to make sure this context manager is reentrant.
+        try:
+            self._cm_depth
+        except AttributeError:
+            self._cm_depth = 0
 
+        if self._cm_depth == 0:
+            self.session = ClientSession()
+        self._cm_depth += 1
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        await self.session.close()
+        self._cm_depth -= 1
+        if self._cm_depth <= 0:
+            await self.session.close()
 
     @staticmethod
     def _prettify_xml(xml_text):
