@@ -342,16 +342,19 @@ class ComarchSOAPAsyncClient:
 
         return await self._make_request("nonAirlineAccrual", args)
 
-    async def enroll(self, customer: Customer, is_complete: bool = False) -> dict:
+    async def enroll(self, customer: Customer, is_complete: bool = False, password: Optional[str] = None) -> dict:
         """
         Method for enrolling a new program member.
 
-        :param customer: new customer data
-        :param is_complete: "False" indicates that it is "quick enrollment" (see Comarch docs)
+        :param customer:    New customer data
+        :param is_complete: False value indicates that it is "quick enrollment" (see Comarch docs)
+        :param password:    Customer password. Required, except for quick enrollment.
 
         :return:
         """
         args = dict(
             customer=customer.to_comarch(),
             incompleteData="N" if is_complete else "Y")
+        if password:
+            args["password"] = password
         return await self._make_request("enroll", args)
