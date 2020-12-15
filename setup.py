@@ -10,7 +10,7 @@ requires = [
 
 setup(
     name="comarch_client",
-    version="0.2.3",
+    version="0.3.0",
     description="comarch soap client",
     long_description=open("README.rst").read(),
     author="Utair",
